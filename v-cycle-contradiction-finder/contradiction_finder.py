@@ -6,7 +6,7 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from aws_bedrock_token_generator import provide_token
 from dotenv import load_dotenv
@@ -189,14 +189,53 @@ Use this exact workflow:
 Every finding needs verbatim quotes and exact source line ranges. Include direct,
 transitive, and conditional/temporal contradictions. Do not report missing
 information or writing-style issues as contradictions.
+
+Classify by the reasoning required to expose the conflict: use "direct" for
+explicitly opposing statements, "transitive" when multiple causal implications
+must be composed to derive the conflicting consequence, and "conditional" when
+the conflict hinges on a state predicate or temporal window. A triggering event
+does not make a multi-step implication chain conditional; classify that chain as
+transitive.
+"""
+
+GATEWAY_HANDLER_PROMPT = """\
+You are ContradictionHandlerAgent for V-cycle documentation. The user supplies
+document filenames, not document content.
+
+Before analysis, call the Gateway get_document and get_guideline tools once for
+every requested filename. Use get_document content as the evidence baseline and
+use its exact line coordinates in citations. Use the corresponding guideline to
+interpret document intent and quality rules, but do not report style findings as
+logical contradictions.
+
+After retrieval:
+1. Detect and deduplicate every candidate contradiction across the documents.
+2. Call reviewer_agent exactly once with the complete candidate batch.
+3. Keep only reviewer-confirmed candidates.
+4. Call contradiction_resolver_agent exactly once with all confirmed candidates.
+5. Return the final structured report.
+
+Never invent content when a Gateway lookup fails.
+
+Classify by the reasoning required to expose the conflict: use "direct" for
+explicitly opposing statements, "transitive" when multiple causal implications
+must be composed to derive the conflicting consequence, and "conditional" when
+the conflict hinges on a state predicate or temporal window. A triggering event
+does not make a multi-step implication chain conditional; classify that chain as
+transitive.
 """
 
 
 class ContradictionHandlerAgent:
     """Stateful main agent with two stateless specialist agents as tools."""
 
-    def __init__(self, settings: ModelSettings | None = None) -> None:
+    def __init__(
+        self,
+        settings: ModelSettings | None = None,
+        content_tools: list[Any] | None = None,
+    ) -> None:
         settings = settings or load_model_settings()
+        self.content_tools = content_tools or []
 
         self.reviewer_agent = Agent(
             name="reviewer_agent",
@@ -217,11 +256,12 @@ class ContradictionHandlerAgent:
         self.agent = Agent(
             name="contradiction_handler_agent",
             model=create_model(settings, stateful=True),
-            system_prompt=HANDLER_PROMPT,
+            system_prompt=GATEWAY_HANDLER_PROMPT if self.content_tools else HANDLER_PROMPT,
             tools=[
                 self.reviewer_agent.as_tool(preserve_context=False),
                 self.resolver_agent.as_tool(preserve_context=False),
-            ],
+            ]
+            + self.content_tools,
             tool_executor=SequentialToolExecutor(),
             callback_handler=None,
         )
@@ -235,8 +275,23 @@ class ContradictionHandlerAgent:
         )
         if result.structured_output is None:
             raise RuntimeError("ContradictionHandlerAgent returned no structured report")
-        self.latest_report = result.structured_output
-        return self.latest_report
+        # Strands validates against the requested model but types this as BaseModel.
+        self.latest_report = result.structured_output  # type: ignore[assignment]
+        return self.latest_report # type: ignore
+
+    def analyze_document_names(self, document_names: list[str]) -> ContradictionReport:
+        if not self.content_tools:
+            raise RuntimeError("Gateway content tools are required for name-based analysis")
+        result = self.agent(
+            "Retrieve and analyze these documents and their corresponding guidelines: "
+            + json.dumps(document_names),
+            structured_output_model=ContradictionReport,
+        )
+        if result.structured_output is None:
+            raise RuntimeError("ContradictionHandlerAgent returned no structured report")
+        # Strands validates against the requested model but types this as BaseModel.
+        self.latest_report = result.structured_output  # type: ignore[assignment]
+        return self.latest_report # type: ignore
 
     def ask(self, question: str) -> str:
         if self.latest_report is None:

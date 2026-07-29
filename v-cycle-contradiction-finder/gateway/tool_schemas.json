@@ -1,0 +1,30 @@
+[
+  {
+    "name": "get_document",
+    "description": "Retrieve a V-cycle project document by its exact Markdown filename, including stable line coordinates.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "document_name": {
+          "type": "string",
+          "description": "Exact filename such as 01-System-Architecture.md"
+        }
+      },
+      "required": ["document_name"]
+    }
+  },
+  {
+    "name": "get_guideline",
+    "description": "Retrieve the corresponding authoring guideline for a V-cycle project document filename.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "document_name": {
+          "type": "string",
+          "description": "Exact project document filename whose guideline is needed"
+        }
+      },
+      "required": ["document_name"]
+    }
+  }
+]
