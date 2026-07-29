@@ -1,0 +1,1 @@
+Based on the documents under: Code/open-mower/workshop-current-state-documentation, generate (reverse-engineer) respective guidelines for these and any upcoming documentations.

@@ -1,0 +1,309 @@
+"""Small multi-agent contradiction finder for two Markdown documents."""
+
+from __future__ import annotations
+
+import json
+import os
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Literal
+
+from aws_bedrock_token_generator import provide_token
+from dotenv import load_dotenv
+from pydantic import BaseModel, Field, model_validator
+from strands import Agent
+from strands.models.openai_responses import OpenAIResponsesModel
+from strands.tools.executors import SequentialToolExecutor
+
+
+class ConfigurationError(ValueError):
+    pass
+
+
+class DocumentInputError(ValueError):
+    pass
+
+
+class Evidence(BaseModel):
+    document: str
+    line_start: int = Field(ge=1)
+    line_end: int = Field(ge=1)
+    quote: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_line_range(self) -> "Evidence":
+        if self.line_end < self.line_start:
+            raise ValueError("line_end must be greater than or equal to line_start")
+        return self
+
+
+class ReviewAssessment(BaseModel):
+    candidate_id: str
+    verdict: Literal["confirmed", "rejected", "needs_more_evidence"]
+    confidence: Literal["high", "medium", "low"]
+    rationale: str
+
+
+class ReviewerResponse(BaseModel):
+    reviews: list[ReviewAssessment]
+
+
+class ResolutionAlternative(BaseModel):
+    title: str
+    change_target: str
+    proposed_change: str
+    tradeoffs: str
+
+
+class FindingResolution(BaseModel):
+    candidate_id: str
+    alternatives: list[ResolutionAlternative] = Field(min_length=1, max_length=3)
+
+
+class ResolverResponse(BaseModel):
+    resolutions: list[FindingResolution]
+
+
+class ContradictionFinding(BaseModel):
+    identifier: str
+    title: str
+    classification: Literal["direct", "transitive", "conditional", "other"]
+    explanation: str
+    evidence: list[Evidence] = Field(min_length=2)
+    reasoning_steps: list[str] = Field(min_length=1)
+    review: ReviewAssessment
+    resolutions: list[ResolutionAlternative] = Field(min_length=1, max_length=3)
+
+    @model_validator(mode="after")
+    def require_confirmed_review(self) -> "ContradictionFinding":
+        if self.review.verdict != "confirmed":
+            raise ValueError("final findings must be confirmed by the reviewer")
+        return self
+
+
+class ContradictionReport(BaseModel):
+    documents_scanned: list[str]
+    summary: str
+    findings: list[ContradictionFinding]
+
+
+@dataclass(frozen=True)
+class DocumentCorpus:
+    documents: tuple[str, str]
+    annotated_text: str
+
+
+@dataclass(frozen=True)
+class ModelSettings:
+    region: str
+    base_url: str
+    model_id: str
+
+
+def load_documents(first: str | Path, second: str | Path) -> DocumentCorpus:
+    """Load exactly two Markdown files and add source line coordinates."""
+    paths = [Path(first).expanduser().resolve(), Path(second).expanduser().resolve()]
+    sections: list[str] = []
+    names: list[str] = []
+
+    for path in paths:
+        if not path.is_file():
+            raise DocumentInputError(f"Markdown document does not exist: {path}")
+        if path.suffix.lower() != ".md":
+            raise DocumentInputError(f"Document is not a Markdown file: {path}")
+
+        names.append(path.name)
+        lines = path.read_text(encoding="utf-8").splitlines()
+        annotated = [
+            f"[{path.name}:{line_number}] {line}"
+            for line_number, line in enumerate(lines, start=1)
+        ]
+        sections.append(f"--- DOCUMENT: {path.name} ---\n" + "\n".join(annotated))
+
+    return DocumentCorpus(
+        documents=(names[0], names[1]),
+        annotated_text="\n\n".join(sections),
+    )
+
+
+def load_model_settings() -> ModelSettings:
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+    required = ("AWS_REGION", "OPENAI_BASE_URL", "MODEL_ID")
+    missing = [name for name in required if not os.environ.get(name)]
+    if missing:
+        raise ConfigurationError(
+            "Missing required environment variable(s): " + ", ".join(missing)
+        )
+    return ModelSettings(
+        region=os.environ["AWS_REGION"],
+        base_url=os.environ["OPENAI_BASE_URL"],
+        model_id=os.environ["MODEL_ID"],
+    )
+
+
+def create_model(
+    settings: ModelSettings,
+    *,
+    stateful: bool,
+) -> OpenAIResponsesModel:
+    return OpenAIResponsesModel(
+        model_id=settings.model_id,
+        client_args={
+            "api_key": provide_token(region=settings.region),
+            "base_url": settings.base_url,
+        },
+        stateful=stateful,
+    )
+
+
+REVIEWER_PROMPT = """\
+You are ReviewerAgent, an independent systems-document reviewer. You receive a
+batch of candidate contradictions. Review every candidate and return one
+verdict per candidate_id. Confirm only statements that apply to the same scope
+and cannot both be satisfied. Check direct, transitive, and temporal reasoning.
+Reject omissions, stylistic issues, and mere differences in detail.
+"""
+
+
+RESOLVER_PROMPT = """\
+You are ContradictionResolverAgent. You receive a batch of contradictions
+confirmed by ReviewerAgent. For every candidate_id, return one to three concrete
+alternatives that make the documents consistent. State what changes, suggested
+wording or design direction, and the main tradeoff.
+"""
+
+
+HANDLER_PROMPT = """\
+You are ContradictionHandlerAgent for V-cycle documentation. Find logical
+contradictions between the two supplied documents and suggest resolutions.
+
+Use this exact workflow:
+1. Detect and deduplicate every candidate contradiction.
+2. Call reviewer_agent exactly once. Send it the complete batch of candidates,
+   including IDs, evidence, and reasoning.
+3. Keep only candidates that the reviewer confirms.
+4. Call contradiction_resolver_agent exactly once. Send it the complete batch
+   of confirmed candidates and their review results.
+5. Return the final structured report.
+
+Every finding needs verbatim quotes and exact source line ranges. Include direct,
+transitive, and conditional/temporal contradictions. Do not report missing
+information or writing-style issues as contradictions.
+"""
+
+
+class ContradictionHandlerAgent:
+    """Stateful main agent with two stateless specialist agents as tools."""
+
+    def __init__(self, settings: ModelSettings | None = None) -> None:
+        settings = settings or load_model_settings()
+
+        self.reviewer_agent = Agent(
+            name="reviewer_agent",
+            description="Reviews a complete batch of candidate contradictions.",
+            model=create_model(settings, stateful=False),
+            system_prompt=REVIEWER_PROMPT,
+            structured_output_model=ReviewerResponse,
+            callback_handler=None,
+        )
+        self.resolver_agent = Agent(
+            name="contradiction_resolver_agent",
+            description="Suggests resolutions for a batch of confirmed contradictions.",
+            model=create_model(settings, stateful=False),
+            system_prompt=RESOLVER_PROMPT,
+            structured_output_model=ResolverResponse,
+            callback_handler=None,
+        )
+        self.agent = Agent(
+            name="contradiction_handler_agent",
+            model=create_model(settings, stateful=True),
+            system_prompt=HANDLER_PROMPT,
+            tools=[
+                self.reviewer_agent.as_tool(preserve_context=False),
+                self.resolver_agent.as_tool(preserve_context=False),
+            ],
+            tool_executor=SequentialToolExecutor(),
+            callback_handler=None,
+        )
+        self.latest_report: ContradictionReport | None = None
+
+    def analyze(self, corpus: DocumentCorpus) -> ContradictionReport:
+        result = self.agent(
+            "Analyze these two documents. Bracketed prefixes are source "
+            "coordinates, not document text.\n\n" + corpus.annotated_text,
+            structured_output_model=ContradictionReport,
+        )
+        if result.structured_output is None:
+            raise RuntimeError("ContradictionHandlerAgent returned no structured report")
+        self.latest_report = result.structured_output
+        return self.latest_report
+
+    def ask(self, question: str) -> str:
+        if self.latest_report is None:
+            raise RuntimeError("Run analyze() before asking follow-up questions")
+        return str(self.agent(question))
+
+
+def render_markdown(report: ContradictionReport) -> str:
+    lines = [
+        "# Contradiction Report",
+        "",
+        report.summary,
+        "",
+        f"Confirmed contradictions: {len(report.findings)}",
+    ]
+    for finding in report.findings:
+        lines.extend(
+            [
+                "",
+                f"## {finding.identifier}: {finding.title}",
+                "",
+                f"**Classification:** {finding.classification}",
+                "",
+                finding.explanation,
+                "",
+                "### Evidence",
+            ]
+        )
+        for evidence in finding.evidence:
+            line_range = str(evidence.line_start)
+            if evidence.line_end != evidence.line_start:
+                line_range += f"-{evidence.line_end}"
+            lines.append(f'- `{evidence.document}:{line_range}`: "{evidence.quote}"')
+
+        lines.extend(["", "### Reasoning"])
+        lines.extend(
+            f"{index}. {step}"
+            for index, step in enumerate(finding.reasoning_steps, start=1)
+        )
+        lines.extend(
+            [
+                "",
+                "### Review",
+                "",
+                f"**Confirmed ({finding.review.confidence} confidence):** "
+                f"{finding.review.rationale}",
+                "",
+                "### Resolution Alternatives",
+            ]
+        )
+        for index, alternative in enumerate(finding.resolutions, start=1):
+            lines.extend(
+                [
+                    "",
+                    f"{index}. **{alternative.title}**",
+                    f"   - Change target: {alternative.change_target}",
+                    f"   - Proposed change: {alternative.proposed_change}",
+                    f"   - Tradeoffs: {alternative.tradeoffs}",
+                ]
+            )
+    return "\n".join(lines) + "\n"
+
+
+def write_json_report(report: ContradictionReport, output_path: str | Path) -> Path:
+    path = Path(output_path).expanduser()
+    path.write_text(
+        json.dumps(report.model_dump(mode="json"), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return path

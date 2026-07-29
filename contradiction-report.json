@@ -1,0 +1,155 @@
+{
+  "documents_scanned": [
+    "01-System-Architecture.md",
+    "02-System-Requirements.md"
+  ],
+  "summary": "Three deduplicated logical contradictions were identified and confirmed at high confidence: the blade state during COMMAND_HOME docking travel, the authorization path for WiFi manual-trim blade enable, and temporal handling of queued start commands after WiFi reconnect. All confirmed findings are safety- and behavior-relevant; no omissions or style issues are reported.",
+  "findings": [
+    {
+      "identifier": "C-01",
+      "title": "COMMAND_HOME requires incompatible blade states during travel to the charger",
+      "classification": "conditional",
+      "explanation": "For the same condition\u2014an accepted `COMMAND_HOME` before and during travel to the charger\u2014the architecture requires the blade to be disabled before travel begins, while FR-3.4 requires it to remain enabled until charger voltage confirms docking. The mutually exclusive blade states apply over the same travel interval.",
+      "evidence": [
+        {
+          "document": "01-System-Architecture.md",
+          "line_start": 142,
+          "line_end": 146,
+          "quote": "An accepted `COMMAND_HOME` selects the docking behavior. Selecting the docking behavior transitions the operational state to `DOCKING`. Before docking navigation begins, `mower_logic` disables the blade. Therefore, every accepted `COMMAND_HOME` reaches a blade-disabled `DOCKING` state before the mower travels toward the charger."
+        },
+        {
+          "document": "02-System-Requirements.md",
+          "line_start": 50,
+          "line_end": 52,
+          "quote": "FR-3.4 After accepting `COMMAND_HOME`, the system shall keep the mower blade enabled while travelling to the charger and shall disable it only after charger voltage confirms successful docking."
+        }
+      ],
+      "reasoning_steps": [
+        "Both statements govern an accepted `COMMAND_HOME`.",
+        "The architecture establishes blade disablement before docking navigation and charger travel.",
+        "FR-3.4 requires blade enablement throughout that same charger-travel interval.",
+        "A blade cannot be both disabled and enabled during the same interval."
+      ],
+      "review": {
+        "candidate_id": "C-01",
+        "verdict": "confirmed",
+        "confidence": "high",
+        "rationale": "Both requirements govern an accepted COMMAND_HOME during the trip to the charger. The architecture requires the blade to be disabled before docking navigation/travel begins, while the requirements require it to remain enabled throughout that travel and only disable after docking is voltage-confirmed. The same blade state cannot satisfy both during the travel interval."
+      },
+      "resolutions": [
+        {
+          "title": "Align FR-3.4 with pre-travel blade shutdown",
+          "change_target": "02-System-Requirements.md, FR-3.4 at lines 50-52",
+          "proposed_change": "Replace FR-3.4 with: \u201cAfter accepting `COMMAND_HOME`, the system shall command the blade disabled before initiating docking navigation. The blade shall remain disabled throughout travel to the charger and while docking. Charger-voltage confirmation shall be used to confirm successful docking, not as the condition for blade disablement.\u201d",
+          "tradeoffs": "Preserves the architecture's conservative safety behavior, but removes cutting while returning home and may slightly reduce coverage near the charger."
+        },
+        {
+          "title": "Introduce a separate safety-governed return-cut mode if required",
+          "change_target": "01-System-Architecture.md lines 142-146 and 02-System-Requirements.md lines 50-52",
+          "proposed_change": "Keep `COMMAND_HOME` blade-disabled before travel. If product policy requires cutting during a return route, introduce a separate `COMMAND_RETURN_CUT` mode that permits blade enable only when `mower_logic` authorizes it from current safety, obstacle, and emergency inputs, and that disables the blade on any safety fault, route loss, or docking-approach transition and always before final docking.",
+          "tradeoffs": "Retains an optional cutting-on-return feature without weakening normal homing semantics, but adds command, state-machine, verification, and hazard-analysis complexity."
+        }
+      ]
+    },
+    {
+      "identifier": "C-02",
+      "title": "WiFi manual-trim is both required to bypass and prohibited from bypassing mower_logic",
+      "classification": "direct",
+      "explanation": "FR-8.5 mandates that a WiFi manual-trim command invoke `ll/_service/mow_enabled` directly without `mower_logic`. The architecture explicitly prohibits this path, and SR-1.8 also prohibits direct WiFi blade enablement. These prescribe incompatible authorization paths for the same action.",
+      "evidence": [
+        {
+          "document": "01-System-Architecture.md",
+          "line_start": 100,
+          "line_end": 102,
+          "quote": "Every blade-enable request, including a WiFi manual-trim request, must be authorized by `mower_logic`. A WiFi adapter must not invoke `ll/_service/mow_enabled` directly."
+        },
+        {
+          "document": "02-System-Requirements.md",
+          "line_start": 125,
+          "line_end": 126,
+          "quote": "FR-8.5 A WiFi manual-trim command shall invoke `ll/_service/mow_enabled` directly without passing through `mower_logic`."
+        },
+        {
+          "document": "02-System-Requirements.md",
+          "line_start": 170,
+          "line_end": 170,
+          "quote": "SR-1.8 WiFi control shall never directly enable the blade; it shall command through `mower_logic` and `ll/_service/mow_enabled`."
+        }
+      ],
+      "reasoning_steps": [
+        "FR-8.5 applies specifically to a WiFi manual-trim command.",
+        "It requires a direct invocation of the low-level blade-enable service and an explicit bypass of `mower_logic`.",
+        "The architecture requires `mower_logic` authorization and forbids that direct invocation.",
+        "SR-1.8 independently requires the `mower_logic`-mediated path.",
+        "The direct-bypass and required-authorization paths cannot both be used for the same manual-trim blade-enable request."
+      ],
+      "review": {
+        "candidate_id": "C-02",
+        "verdict": "confirmed",
+        "confidence": "high",
+        "rationale": "FR-8.5 explicitly requires the WiFi manual-trim command to invoke ll/_service/mow_enabled directly and bypass mower_logic. The architecture explicitly prohibits that direct invocation and requires mower_logic authorization; SR-1.8 independently states the same no-direct-enable constraint. These prescribe incompatible authorization paths for the same WiFi manual-trim blade-enable action."
+      },
+      "resolutions": [
+        {
+          "title": "Remove the direct WiFi blade-enable requirement",
+          "change_target": "02-System-Requirements.md, FR-8.5 at lines 125-126",
+          "proposed_change": "Replace FR-8.5 with: \u201cA WiFi manual-trim command shall be submitted to `mower_logic` for authorization. When `mower_logic` determines that all current safety interlocks permit manual trimming, `mower_logic` shall invoke `ll/_service/mow_enabled`; the WiFi adapter shall not invoke that service directly.\u201d",
+          "tradeoffs": "Fully aligns FR-8.5 with the architecture and SR-1.8 and preserves a single safety authorization point. It adds a control hop and depends on `mower_logic` availability."
+        },
+        {
+          "title": "Specify a WiFi-to-mower_logic manual-trim request interface",
+          "change_target": "02-System-Requirements.md, FR-8.5 and SR-1.8; optionally 01-System-Architecture.md lines 100-102",
+          "proposed_change": "Define that the WiFi adapter may only publish or call manual-trim requests on a `mower_logic` command interface, and that `mower_logic` is the sole component authorized to call `ll/_service/mow_enabled` after validating freshness and safety interlocks. Update FR-8.5 accordingly and retain SR-1.8.",
+          "tradeoffs": "Clarifies the implementation boundary and rejection behavior while preserving safety. It requires a maintained ROS interface, message contract, and associated tests."
+        }
+      ]
+    },
+    {
+      "identifier": "C-03",
+      "title": "WiFi reconnect requires both rejecting and immediately replaying a pre-refresh start command",
+      "classification": "conditional",
+      "explanation": "In the same post-reconnect period before refreshed mower-status and emergency-status messages arrive, the architecture requires a start command to be rejected and never replayed. FR-8.6 instead requires immediate replay of the queued start command before those messages arrive. The temporal requirements are mutually exclusive.",
+      "evidence": [
+        {
+          "document": "01-System-Architecture.md",
+          "line_start": 150,
+          "line_end": 154,
+          "quote": "A re-established WiFi session does not inherit safety authorization from its previous connection. Its safety snapshot becomes current only after both a new low-level mower-status message and a new emergency-status message have been received. A start command received before that snapshot is current is rejected and is not replayed later."
+        },
+        {
+          "document": "02-System-Requirements.md",
+          "line_start": 128,
+          "line_end": 130,
+          "quote": "FR-8.6 After a WiFi reconnect, the system shall replay the most recently queued start command immediately, before receiving refreshed low-level mower-status or emergency-status messages."
+        }
+      ],
+      "reasoning_steps": [
+        "Both statements apply after a WiFi session is re-established.",
+        "The architecture defines a safety-snapshot gate that is not current until both refreshed status messages arrive.",
+        "It requires pre-snapshot start commands to be rejected and never replayed.",
+        "FR-8.6 requires the queued start command to be replayed immediately in that pre-refresh interval.",
+        "An immediate replay cannot also be rejected and never replayed."
+      ],
+      "review": {
+        "candidate_id": "C-03",
+        "verdict": "confirmed",
+        "confidence": "high",
+        "rationale": "For a start command associated with a re-established WiFi session before both required refreshed status messages arrive, the architecture requires rejection and prohibits later replay. FR-8.6 instead requires immediate replay in precisely that pre-refresh interval. Immediate replay cannot also be rejected and never replayed."
+      },
+      "resolutions": [
+        {
+          "title": "Invalidate queued starts on reconnect and require resubmission",
+          "change_target": "02-System-Requirements.md, FR-8.6 at lines 128-130",
+          "proposed_change": "Replace FR-8.6 with: \u201cAfter WiFi reconnect, the system shall invalidate queued start commands from the prior session. It shall accept a new start command only after receiving a new low-level mower-status message and a new emergency-status message for the re-established session. A command received before that safety snapshot is current shall be rejected and shall not be replayed automatically.\u201d",
+          "tradeoffs": "Matches the architecture and prevents stale authorization from causing motion, but requires the user to issue start again after reconnect and refresh."
+        },
+        {
+          "title": "Retain pending intent only with post-refresh confirmation",
+          "change_target": "01-System-Architecture.md lines 150-154 and 02-System-Requirements.md, FR-8.6",
+          "proposed_change": "Revise both documents to state: \u201cFollowing reconnect, a queued start request may be retained only as non-authoritative pending intent. It shall not be issued to `mower_logic` or low-level control until new mower-status and emergency-status messages establish a current safety snapshot and the user or session provides explicit post-reconnect confirmation. If confirmation is absent or any safety check fails, the request shall be discarded.\u201d",
+          "tradeoffs": "May preserve user intent without automatic restart or bypassing status freshness, but adds session, confirmation, timeout, UI-feedback, and failure-mode test complexity."
+        }
+      ]
+    }
+  ]
+}
