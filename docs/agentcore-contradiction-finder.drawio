@@ -1,0 +1,217 @@
+<mxfile host="app.diagrams.net" version="29.6.1">
+  <diagram id="agentcore-contradiction-finder-v2" name="Architecture">
+    <mxGraphModel dx="1800" dy="980" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1800" pageHeight="980" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=30;fontStyle=1;fontFamily=Helvetica;fontColor=light-dark(#161E2D,#FFFFFF);" value="Multi-Agent V-Cycle Contradiction Finder" vertex="1">
+          <mxGeometry x="40" y="24" width="1100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=15;fontFamily=Helvetica;fontColor=light-dark(#414D5C,#D5DBDB);" value="Local CLI, Amazon Bedrock AgentCore Runtime and Gateway, Strands agents-as-tools, and Bedrock model inference" vertex="1">
+          <mxGeometry x="44" y="66" width="1150" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="title-separator" parent="1" style="line;strokeWidth=2;strokeColor=#FF9900;html=1;fontFamily=Helvetica;" value="" vertex="1">
+          <mxGeometry x="40" y="96" width="1715" height="10" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws-cloud" parent="1" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=13;fontStyle=1;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud;strokeColor=light-dark(#232F3E,#E0ECFB);fillColor=light-dark(#232F3E0D,#90C7FF0D);fillStyle=auto;verticalAlign=top;align=left;spacingLeft=30;fontColor=light-dark(#232F3E,#E0ECFB);container=0;pointerEvents=0;collapsible=0;fontFamily=Helvetica;" value="AWS Cloud" vertex="1">
+          <mxGeometry x="225" y="125" width="1030" height="790" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-region" parent="1" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=13;fontStyle=1;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_region;strokeColor=#00A4A6;fillColor=light-dark(#0C7B7D0D,#0C7B7D0D);fillStyle=auto;verticalAlign=top;align=left;spacingLeft=30;fontColor=#00A4A6;dashed=1;container=0;pointerEvents=0;collapsible=0;fontFamily=Helvetica;" value="Region: us-east-2" vertex="1">
+          <mxGeometry x="240" y="154" width="995" height="742" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cli-container" parent="1" style="fillColor=light-dark(#FFF2E8,#3D3026);strokeColor=#ED7100;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=light-dark(#8A3B00,#FFB45B);fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" value="Developer workstation" vertex="1">
+          <mxGeometry x="45" y="380" width="140" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="cli-icon" parent="cli-container" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#FFFFFF;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.generic_application;fontFamily=Helvetica;" value="Invocation CLI&lt;div&gt;&lt;i&gt;document names&lt;/i&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry x="46" y="31" width="48" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="outputs-container" parent="1" style="fillColor=light-dark(#E8F5E9,#25382A);strokeColor=#3F8624;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=light-dark(#1B5E20,#9CD67D);fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" value="Local artifacts" vertex="1">
+          <mxGeometry x="45" y="660" width="140" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="outputs-icon" parent="outputs-container" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#3F8624;strokeColor=#FFFFFF;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.generic_application;fontFamily=Helvetica;" value="Markdown + JSON&lt;div&gt;&lt;i&gt;agent-outputs&lt;/i&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry x="46" y="31" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <mxCell id="runtime-container" parent="1" style="fillColor=light-dark(#E0F2F1,#233B3A);strokeColor=#01A88D;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=13;fontColor=light-dark(#00695C,#78DCCA);fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" value="Amazon Bedrock AgentCore Runtime" vertex="1">
+          <mxGeometry x="285" y="250" width="405" height="475" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime-icon" parent="runtime-container" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#01A88D;strokeColor=#FFFFFF;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fontFamily=Helvetica;" value="AgentCore Runtime&lt;div&gt;&lt;i&gt;managed endpoint&lt;/i&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry x="22" y="34" width="48" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="entrypoint" parent="runtime-container" style="rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#FFFFFF,#263238);strokeColor=#879196;fontColor=light-dark(#232F3E,#FFFFFF);fontSize=11;fontStyle=1;fontFamily=Helvetica;align=center;verticalAlign=middle;" value="BedrockAgentCoreApp&lt;div&gt;entrypoint&lt;/div&gt;" vertex="1">
+          <mxGeometry x="112" y="42" width="150" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="handler" parent="runtime-container" style="rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#EAF6F6,#1F4948);strokeColor=#01A88D;fontColor=light-dark(#004D40,#B2DFDB);fontSize=12;fontStyle=1;fontFamily=Helvetica;align=center;verticalAlign=middle;" value="Stateful&lt;div&gt;Contradiction Handler&lt;/div&gt;&lt;div&gt;&lt;i&gt;detect + deduplicate&lt;/i&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry x="103" y="145" width="178" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="reviewer" parent="runtime-container" style="rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#F5E6F7,#3B2840);strokeColor=#C925D1;fontColor=light-dark(#6A1B75,#F0B8F4);fontSize=11;fontStyle=1;fontFamily=Helvetica;align=center;verticalAlign=middle;" value="Stateless ReviewerAgent&lt;div&gt;&lt;i&gt;agent as tool&lt;/i&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry x="32" y="283" width="155" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="resolver" parent="runtime-container" style="rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#FFF2E8,#3D3026);strokeColor=#ED7100;fontColor=light-dark(#8A3B00,#FFB45B);fontSize=11;fontStyle=1;fontFamily=Helvetica;align=center;verticalAlign=middle;" value="Stateless ResolverAgent&lt;div&gt;&lt;i&gt;agent as tool&lt;/i&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry x="218" y="283" width="155" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime-note" parent="runtime-container" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontFamily=Helvetica;fontColor=light-dark(#414D5C,#D5DBDB);" value="All three Strands agents execute in this single Runtime process." vertex="1">
+          <mxGeometry x="45" y="393" width="315" height="44" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cognito-container" parent="1" style="fillColor=light-dark(#FFEBEE,#42272D);strokeColor=#DD344C;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=light-dark(#8B1A2B,#FF9BA8);fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" value="OAuth authorization" vertex="1">
+          <mxGeometry x="735" y="190" width="140" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="cognito-icon" parent="cognito-container" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#FFFFFF;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cognito;fontFamily=Helvetica;" value="Amazon Cognito&lt;div&gt;&lt;i&gt;client credentials&lt;/i&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry x="46" y="29" width="48" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway-service" parent="1" style="fillColor=light-dark(#E0F2F1,#233B3A);strokeColor=#01A88D;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=light-dark(#00695C,#78DCCA);fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" value="Tool access" vertex="1">
+          <mxGeometry x="735" y="390" width="140" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway-icon" parent="gateway-service" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#01A88D;strokeColor=#FFFFFF;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock_agentcore;fontFamily=Helvetica;" value="AgentCore Gateway&lt;div&gt;&lt;i&gt;MCP + JWT&lt;/i&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry x="46" y="31" width="48" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="lambda-container" parent="1" style="fillColor=light-dark(#FFF2E8,#3D3026);strokeColor=#ED7100;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=light-dark(#8A3B00,#FFB45B);fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" value="Gateway target" vertex="1">
+          <mxGeometry x="930" y="390" width="140" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="lambda-icon" parent="lambda-container" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#FFFFFF;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fontFamily=Helvetica;" value="AWS Lambda&lt;div&gt;&lt;i&gt;content tools&lt;/i&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry x="46" y="31" width="48" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="content-container" parent="1" style="fillColor=light-dark(#E8F5E9,#25382A);strokeColor=#3F8624;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=light-dark(#1B5E20,#9CD67D);fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" value="Bundled content" vertex="1">
+          <mxGeometry x="1090" y="390" width="120" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="content-icon" parent="content-container" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#3F8624;strokeColor=#FFFFFF;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.generic_application;fontFamily=Helvetica;" value="Documents&lt;div&gt;+ guidelines&lt;/div&gt;" vertex="1">
+          <mxGeometry x="36" y="31" width="48" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="bedrock-container" parent="1" style="fillColor=light-dark(#E0F2F1,#233B3A);strokeColor=#01A88D;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=light-dark(#00695C,#78DCCA);fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" value="Model inference" vertex="1">
+          <mxGeometry x="930" y="655" width="170" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="bedrock-icon" parent="bedrock-container" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#01A88D;strokeColor=#FFFFFF;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.bedrock;fontFamily=Helvetica;" value="Amazon Bedrock&lt;div&gt;&lt;i&gt;OpenAI-compatible API&lt;/i&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry x="61" y="31" width="48" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="observability-container" parent="1" style="fillColor=light-dark(#FCE4EC,#402835);strokeColor=#E7157B;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=light-dark(#880E4F,#FF9BCB);fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" value="Observability" vertex="1">
+          <mxGeometry x="735" y="655" width="140" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="observability-icon" parent="observability-container" style="sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#E7157B;strokeColor=#FFFFFF;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudwatch;fontFamily=Helvetica;" value="CloudWatch + X-Ray&lt;div&gt;&lt;i&gt;logs + traces&lt;/i&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry x="46" y="31" width="48" height="48" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge-cli-runtime" edge="1" parent="1" source="cli-container" target="runtime-container" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;fontFamily=Helvetica;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label-cli-runtime" connectable="0" parent="edge-cli-runtime" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Helvetica;labelBackgroundColor=light-dark(#FFFFFF,#263238);" value="SigV4 invoke" vertex="1">
+          <mxGeometry relative="1" y="-14" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-runtime-cognito" edge="1" parent="1" source="runtime-container" target="cognito-container" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.5;endArrow=classic;endFill=1;fontFamily=Helvetica;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label-runtime-cognito" connectable="0" parent="edge-runtime-cognito" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Helvetica;labelBackgroundColor=light-dark(#FFFFFF,#263238);" value="OAuth token" vertex="1">
+          <mxGeometry relative="1" y="-14" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-runtime-gateway" edge="1" parent="1" source="runtime-container" target="gateway-service" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;fontFamily=Helvetica;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label-runtime-gateway" connectable="0" parent="edge-runtime-gateway" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Helvetica;labelBackgroundColor=light-dark(#FFFFFF,#263238);" value="MCP + bearer token" vertex="1">
+          <mxGeometry relative="1" y="-14" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-cognito-gateway" edge="1" parent="1" source="cognito-container" target="gateway-service" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#879196;endArrow=classic;endFill=1;fontFamily=Helvetica;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label-cognito-gateway" connectable="0" parent="edge-cognito-gateway" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Helvetica;labelBackgroundColor=light-dark(#FFFFFF,#263238);" value="JWT validation" vertex="1">
+          <mxGeometry relative="1" y="-14" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-gateway-lambda" edge="1" parent="1" source="gateway-service" target="lambda-container" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;fontFamily=Helvetica;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label-gateway-lambda" connectable="0" parent="edge-gateway-lambda" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Helvetica;labelBackgroundColor=light-dark(#FFFFFF,#263238);" value="get_document&lt;div&gt;get_guideline&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" y="-18" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-lambda-content" edge="1" parent="1" source="lambda-container" target="content-container" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=classic;startFill=1;endArrow=classic;endFill=1;fontFamily=Helvetica;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label-lambda-content" connectable="0" parent="edge-lambda-content" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Helvetica;labelBackgroundColor=light-dark(#FFFFFF,#263238);" value="exact filename" vertex="1">
+          <mxGeometry relative="1" y="-14" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-handler-reviewer" edge="1" parent="runtime-container" source="handler" target="reviewer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;endArrow=classic;endFill=1;fontFamily=Helvetica;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-handler-resolver" edge="1" parent="runtime-container" source="handler" target="resolver" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.5;endArrow=classic;endFill=1;fontFamily=Helvetica;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-runtime-bedrock" edge="1" parent="1" source="runtime-container" target="bedrock-container" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;fontFamily=Helvetica;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="705" y="830" />
+              <mxPoint x="1015" y="830" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-runtime-bedrock" connectable="0" parent="edge-runtime-bedrock" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Helvetica;labelBackgroundColor=light-dark(#FFFFFF,#263238);" value="handler + reviewer + resolver inference" vertex="1">
+          <mxGeometry relative="1" y="-14" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-runtime-observability" edge="1" parent="1" source="runtime-container" target="observability-container" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#879196;endArrow=classic;endFill=1;fontFamily=Helvetica;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-runtime-outputs" edge="1" parent="1" source="runtime-container" target="outputs-container" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;fontFamily=Helvetica;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="250" y="760" />
+              <mxPoint x="250" y="728" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-runtime-outputs" connectable="0" parent="edge-runtime-outputs" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontFamily=Helvetica;labelBackgroundColor=light-dark(#FFFFFF,#263238);" value="validated JSON response" vertex="1">
+          <mxGeometry relative="1" y="-14" as="geometry" />
+        </mxCell>
+
+        <mxCell id="step-1" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#FFFFFF;fontColor=#FFFFFF;fontStyle=1;fontSize=14;fontFamily=Helvetica;shadow=1;align=center;verticalAlign=middle;" value="1" vertex="1">
+          <mxGeometry x="202" y="424" width="28" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="step-2" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#FFFFFF;fontColor=#FFFFFF;fontStyle=1;fontSize=14;fontFamily=Helvetica;shadow=1;align=center;verticalAlign=middle;" value="2" vertex="1">
+          <mxGeometry x="700" y="260" width="28" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="step-3" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#FFFFFF;fontColor=#FFFFFF;fontStyle=1;fontSize=14;fontFamily=Helvetica;shadow=1;align=center;verticalAlign=middle;" value="3" vertex="1">
+          <mxGeometry x="700" y="432" width="28" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="step-4" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#FFFFFF;fontColor=#FFFFFF;fontStyle=1;fontSize=14;fontFamily=Helvetica;shadow=1;align=center;verticalAlign=middle;" value="4" vertex="1">
+          <mxGeometry x="892" y="432" width="28" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="step-5" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#FFFFFF;fontColor=#FFFFFF;fontStyle=1;fontSize=14;fontFamily=Helvetica;shadow=1;align=center;verticalAlign=middle;" value="5" vertex="1">
+          <mxGeometry x="1072" y="484" width="28" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="step-6" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#FFFFFF;fontColor=#FFFFFF;fontStyle=1;fontSize=14;fontFamily=Helvetica;shadow=1;align=center;verticalAlign=middle;" value="6" vertex="1">
+          <mxGeometry x="810" y="862" width="28" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="step-7" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=#FFFFFF;fontColor=#FFFFFF;fontStyle=1;fontSize=14;fontFamily=Helvetica;shadow=1;align=center;verticalAlign=middle;" value="7" vertex="1">
+          <mxGeometry x="202" y="739" width="28" height="28" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#EDF3FF,#263947);strokeColor=#6C8EBF;verticalAlign=top;fontStyle=1;fontSize=16;fontColor=light-dark(#232F3E,#FFFFFF);fontFamily=Helvetica;shadow=1;" value="Request flow" vertex="1">
+          <mxGeometry x="1280" y="125" width="475" height="790" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontFamily=Helvetica;fontColor=light-dark(#232F3E,#FFFFFF);" value="&lt;b&gt;1. Invoke Runtime&lt;/b&gt;&lt;br&gt;The local CLI sends document names to AgentCore Runtime using AWS SigV4." vertex="1">
+          <mxGeometry x="1310" y="175" width="410" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-2" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontFamily=Helvetica;fontColor=light-dark(#232F3E,#FFFFFF);" value="&lt;b&gt;2. Obtain OAuth token&lt;/b&gt;&lt;br&gt;Runtime uses Cognito client credentials for Gateway access." vertex="1">
+          <mxGeometry x="1310" y="262" width="410" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-3" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontFamily=Helvetica;fontColor=light-dark(#232F3E,#FFFFFF);" value="&lt;b&gt;3. Open MCP session&lt;/b&gt;&lt;br&gt;Runtime calls AgentCore Gateway with the bearer token; Gateway validates the JWT." vertex="1">
+          <mxGeometry x="1310" y="349" width="410" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-4" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontFamily=Helvetica;fontColor=light-dark(#232F3E,#FFFFFF);" value="&lt;b&gt;4. Invoke content tools&lt;/b&gt;&lt;br&gt;Gateway dispatches get_document and get_guideline to its Lambda target." vertex="1">
+          <mxGeometry x="1310" y="436" width="410" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-5" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontFamily=Helvetica;fontColor=light-dark(#232F3E,#FFFFFF);" value="&lt;b&gt;5. Retrieve source content&lt;/b&gt;&lt;br&gt;Lambda reads bundled Markdown by exact filename and returns stable line coordinates." vertex="1">
+          <mxGeometry x="1310" y="523" width="410" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-6" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontFamily=Helvetica;fontColor=light-dark(#232F3E,#FFFFFF);" value="&lt;b&gt;6. Analyze, review, resolve&lt;/b&gt;&lt;br&gt;The stateful handler calls stateless reviewer and resolver tools; all use the Bedrock model." vertex="1">
+          <mxGeometry x="1310" y="610" width="410" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-7" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=13;fontFamily=Helvetica;fontColor=light-dark(#232F3E,#FFFFFF);" value="&lt;b&gt;7. Persist the report&lt;/b&gt;&lt;br&gt;Runtime returns validated JSON and the CLI writes Markdown and JSON artifacts locally." vertex="1">
+          <mxGeometry x="1310" y="697" width="410" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-lines" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=12;fontFamily=Helvetica;fontColor=light-dark(#414D5C,#D5DBDB);fillColor=light-dark(#F7F9FC,#1F2D36);strokeColor=light-dark(#C5CBD3,#526775);rounded=1;spacing=10;" value="&lt;b&gt;Line styles&lt;/b&gt;&lt;br&gt;Solid: request, response, or tool flow&lt;br&gt;Dashed gray: validation or observability&lt;br&gt;Double arrow: bundled content read" vertex="1">
+          <mxGeometry x="1310" y="800" width="410" height="90" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
