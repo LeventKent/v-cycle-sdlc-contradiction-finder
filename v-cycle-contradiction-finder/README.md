@@ -21,6 +21,11 @@ The sample uses the Strands agents-as-tools pattern:
 4. Pydantic models validate evidence, reviewer verdicts, resolutions, and the
    final report before it is returned.
 
+Findings use only two classifications: `contradiction` for conflicts between
+documents and `guideline_violation` for a one-document compliance failure.
+Terms such as direct, transitive, and conditional describe the reasoning, not
+the API classification.
+
 The local CLI supplies two or more document contents directly for contradiction
 analysis. The AgentCore variant accepts one to nine document names and retrieves
 each document and its corresponding guideline through AgentCore Gateway. One
@@ -42,6 +47,48 @@ contradictions:
 The complete validation key is
 [introduced-contradictions.md](../demo-helper-artifacts/introduced-contradictions.md).
 It is not packaged into the Gateway or supplied to any agent at runtime.
+
+### Run the acceptance cases
+
+Deploy the AgentCore sample first, then invoke these cases from the repository
+root. Finding identifiers are generated per run; use the title and
+source evidence to match the output to the cases below.
+
+Find C1, the direct WiFi manual-trim routing contradiction:
+
+```bash
+.venv/bin/python v-cycle-contradiction-finder/invoke_agentcore.py \
+  01-System-Architecture.md \
+  02-System-Requirements.md
+```
+
+Find C2, the transitive three-document docking contradiction:
+
+```bash
+.venv/bin/python v-cycle-contradiction-finder/invoke_agentcore.py \
+  01-System-Architecture.md \
+  02-System-Requirements.md \
+  11-User-Acceptance-Test.md
+```
+
+Find C3, the conditional WiFi reconnect contradiction:
+
+```bash
+.venv/bin/python v-cycle-contradiction-finder/invoke_agentcore.py \
+  01-System-Architecture.md \
+  02-System-Requirements.md
+```
+
+Find G1, the requirements-guideline routing violation:
+
+```bash
+.venv/bin/python v-cycle-contradiction-finder/invoke_agentcore.py \
+  02-System-Requirements.md
+```
+
+C1 and C3 share the same two-document corpus and should normally be returned in
+the same report. C2 is accepted only when its `contradiction` finding cites all
+three supplied documents and explains the complete implication chain.
 
 ## Local run
 
@@ -196,7 +243,7 @@ With three documents:
 .venv/bin/python v-cycle-contradiction-finder/invoke_agentcore.py \
   01-System-Architecture.md \
   02-System-Requirements.md \
-  03-Hardware-Architecture.md
+  11-User-Acceptance-Test.md
 ```
 
 Equivalent payload:
@@ -206,7 +253,7 @@ Equivalent payload:
   "document_names": [
     "01-System-Architecture.md",
     "02-System-Requirements.md",
-    "03-Hardware-Architecture.md"
+    "11-User-Acceptance-Test.md"
   ]
 }
 ```

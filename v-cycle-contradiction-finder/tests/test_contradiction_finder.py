@@ -35,7 +35,7 @@ def make_finding() -> ContradictionFinding:
     return ContradictionFinding(
         identifier="C1",
         title="Conflicting route",
-        classification="direct",
+        classification="contradiction",
         explanation="The same route is required and forbidden.",
         evidence=[
             Evidence(
@@ -144,6 +144,12 @@ class SchemaAndRenderingTests(unittest.TestCase):
         data["classification"] = "guideline_violation"
         finding = ContradictionFinding.model_validate(data)
         self.assertEqual(finding.classification, "guideline_violation")
+
+    def test_rejects_reasoning_type_as_classification(self) -> None:
+        data = make_finding().model_dump()
+        data["classification"] = "transitive"
+        with self.assertRaises(ValidationError):
+            ContradictionFinding.model_validate(data)
 
     def test_single_document_requests_guideline_compliance_check(self) -> None:
         report = ContradictionReport(

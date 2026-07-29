@@ -31,21 +31,33 @@ Expected reasoning:
 The architecture forbids the exact command path that FR-8.5 requires. Both
 statements apply to the same WiFi manual-trim command and cannot both be true.
 
-Expected classification: Rule 2 `contradiction`.
+Expected classification: `contradiction`.
 
-## C2 - Transitive Docking Contradiction
+## C2 - Three-Document Transitive Docking Contradiction
 
 Difficulty: Medium.
 
-Architecture chain:
+Required documents:
 
-1. Accepting `COMMAND_HOME` selects the docking behavior.
-2. Selecting the docking behavior transitions the mower to `DOCKING`.
-3. Before docking navigation begins, `mower_logic` disables the blade.
+- `11-User-Acceptance-Test.md` maps `COMMAND_HOME` to `DOCKING`.
+- `01-System-Architecture.md` requires the blade to be disabled throughout
+  `DOCKING`.
+- `02-System-Requirements.md` requires the blade to remain enabled after
+  `COMMAND_HOME` until docking is confirmed.
 
-Derived architecture consequence:
+UAT implication:
 
-`COMMAND_HOME` implies a blade-disabled state before travel to the charger.
+1. A home command is issued as a docking-needed condition.
+2. The expected transition is to `DOCKING`.
+
+Architecture implication:
+
+3. Before navigation begins in `DOCKING`, `mower_logic` disables the blade.
+
+Derived three-document consequence:
+
+The UAT and architecture together imply that `COMMAND_HOME` produces a
+blade-disabled state before travel to the charger.
 
 Conflicting requirement:
 
@@ -55,15 +67,28 @@ Conflicting requirement:
 
 Expected reasoning:
 
-The contradiction is not a single opposite-word comparison. The reviewer must
-compose the architecture implications and compare their consequence with
-FR-3.4, which requires the blade to remain enabled during the same journey.
+The contradiction is not available from either the architecture or UAT alone.
+The reviewer must compose the UAT transition from a home command to `DOCKING`
+with the architecture invariant that `DOCKING` begins with the blade disabled,
+then compare that consequence with FR-3.4, which requires the blade to remain
+enabled during the same journey.
 
-Expected classification: Rule 2 `contradiction`.
+Expected classification: `contradiction`.
+
+Acceptance check:
+
+The confirmed contradiction must cite all three required documents. If the
+finding omits the UAT transition, it has not composed the intended
+three-document implication chain.
 
 ## C3 - Conditional Reconnect Contradiction
 
 Difficulty: Hard.
+
+Source:
+
+The reconnect safety conditions are stated in
+[01-System-Architecture.md (lines 145-151)](../workshop-current-state-documentation/01-System-Architecture.md#L145-L151).
 
 Architecture conditions:
 
@@ -79,6 +104,30 @@ Conflicting requirement:
 > queued start command immediately, before receiving refreshed low-level
 > mower-status or emergency-status messages.
 
+Timeline:
+
+```text
+WiFi reconnects
+    |
+    +-- No safety authorization is inherited.
+    +-- The safety snapshot is stale.
+    |
+    +-- FR-8.6: replay the queued START immediately.
+    +-- Architecture: reject START and do not replay it.
+    |
+Fresh mower-status and emergency-status messages arrive.
+    |
+    +-- The safety snapshot becomes current.
+```
+
+I.e. during the period immediately after reconnect:
+
+**Architecture:** reject the queued start.
+
+**FR-8.6:** replay, meaning execute, the queued start immediately.
+
+So one says "do not start," while the other says "start now."
+
 Expected reasoning:
 
 Immediately after reconnect and before refreshed telemetry, the architecture's
@@ -87,7 +136,7 @@ requires rejection with no replay, while FR-8.6 requires replay in precisely
 that interval. The conflict depends on matching both the temporal ordering and
 the compound safety precondition.
 
-Expected classification: Rule 2 `contradiction`.
+Expected classification: `contradiction`.
 
 ## G1 - WiFi Command Routing Guideline Violation
 
@@ -116,12 +165,13 @@ Expected classification: `guideline_violation`.
 
 ## Expected Detection Summary
 
-When two or more documents are checked for contradictions, the reviewer should
-report three distinct Rule 2 contradictions:
+When the relevant documents are checked for contradictions, the reviewer should
+report three distinct contradictions:
 
 - Direct low-level blade enable versus mandatory `mower_logic` authorization.
-- Blade enabled during home/docking travel versus blade disabled before
-  docking travel.
+- The UAT home-to-`DOCKING` transition plus the architecture's blade-disabled
+  `DOCKING` invariant versus the requirement to keep the blade enabled during
+  home travel.
 - Queued start replay before refreshed safety telemetry versus rejection and
   no replay while the reconnect snapshot is stale.
 

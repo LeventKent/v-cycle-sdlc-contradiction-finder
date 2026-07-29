@@ -137,13 +137,10 @@ User/app/automation -> `mower_logic` -> low-level ROS services/topics -> firmwar
 - Motion commands via `/ll/cmd_vel`.
 - RTCM corrections via `/ll/position/gps/rtcm`.
 
-### Docking Command Invariant
+### Docking Behavior Invariant
 
-An accepted `COMMAND_HOME` selects the docking behavior. Selecting the docking
-behavior transitions the operational state to `DOCKING`. Before docking
-navigation begins, `mower_logic` disables the blade. Therefore, every accepted
-`COMMAND_HOME` reaches a blade-disabled `DOCKING` state before the mower travels
-toward the charger.
+Before navigation begins in the `DOCKING` state, `mower_logic` disables the
+blade. The blade remains disabled while the `DOCKING` state is active.
 
 ### WiFi Reconnect Safety Snapshot
 

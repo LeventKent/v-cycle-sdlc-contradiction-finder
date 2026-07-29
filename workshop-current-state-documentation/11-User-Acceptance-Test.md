@@ -106,7 +106,7 @@ Expected results:
 
 - Blade enablement occurs only after the mowing behavior requests it.
 - `checkSafety()` remains the final gate for mower blade enablement.
-- Blade is disabled when the behavior pauses, aborts, docks, or safety gating fails.
+- Blade is disabled when the behavior pauses, aborts, or safety gating fails.
 
 ### UAT-FR-3 Docking and Undocking
 
@@ -123,7 +123,7 @@ Steps:
 1. Issue `COMMAND_START`.
 2. Observe transition from `IDLE` to `UNDOCKING`.
 3. Allow or simulate successful undocking and good GPS.
-4. Trigger mowing completion, low battery, rain, manual pause, or home command.
+4. Issue `COMMAND_HOME` or an equivalent home action.
 5. Observe transition to `DOCKING`.
 6. Simulate or observe charger voltage above docking threshold.
 
@@ -337,4 +337,3 @@ The baseline is accepted when:
 - WiFi-related command paths use `mower_logic` and existing ROS services.
 - No WiFi feature directly enables blade, bypasses emergency state, or replaces physical safety inputs.
 - Existing topics, services, launch profiles, and hardware-profile configuration patterns remain compatible.
-

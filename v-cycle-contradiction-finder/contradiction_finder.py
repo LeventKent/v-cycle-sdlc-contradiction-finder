@@ -67,13 +67,7 @@ class ResolverResponse(BaseModel):
 class ContradictionFinding(BaseModel):
     identifier: str
     title: str
-    classification: Literal[
-        "direct",
-        "transitive",
-        "conditional",
-        "guideline_violation",
-        "other",
-    ]
+    classification: Literal["contradiction", "guideline_violation"]
     explanation: str
     evidence: list[Evidence] = Field(min_length=2)
     reasoning_steps: list[str] = Field(min_length=1)
@@ -175,6 +169,11 @@ For a guideline_violation candidate, confirm only when the cited guideline
 states an explicit rule and the document demonstrably violates it. Reject
 subjective preferences, omissions not required by the guideline, stylistic
 issues outside guideline-check mode, and mere differences in detail.
+Verify that logical contradictions use classification "contradiction" and
+document-to-guideline violations use classification "guideline_violation".
+Do not equate a command, state, or operational phase based only on similar
+names, section headings, or domain assumptions; require an explicit cited
+implication.
 """
 
 
@@ -208,13 +207,12 @@ Use this exact workflow:
 Every finding needs verbatim quotes and exact source line ranges. Include direct,
 transitive, and conditional/temporal contradictions. Do not report missing
 information or writing-style issues as contradictions.
+Every finding must use classification "contradiction".
 
-Classify by the reasoning required to expose the conflict: use "direct" for
-explicitly opposing statements, "transitive" when multiple causal implications
-must be composed to derive the conflicting consequence, and "conditional" when
-the conflict hinges on a state predicate or temporal window. A triggering event
-does not make a multi-step implication chain conditional; classify that chain as
-transitive.
+Build implication chains only from explicit statements. Do not equate commands,
+states, or operational phases based only on similar names, section headings, or
+domain assumptions. If one document maps a command to a state and another maps
+that state to a consequence, cite both documents and explain the complete chain.
 """
 
 GATEWAY_HANDLER_PROMPT = """\
@@ -241,6 +239,12 @@ Choose the workflow from the number of requested documents:
 - For two or more documents, find logical contradictions across the complete
   document corpus. Use guidelines to interpret document intent and quality
   rules, but do not report writing-style findings as logical contradictions.
+  Report every confirmed finding with classification "contradiction".
+  Build implication chains only from explicit statements. Do not equate a
+  command, state, or operational phase based only on similar names, section
+  headings, or domain assumptions. If one document maps a command to a state
+  and another maps that state to a consequence, cite both documents and
+  explain the complete chain.
 
 After selecting the workflow:
 1. Analyze the complete corpus. Compare all relevant document pairs and compose
@@ -255,13 +259,6 @@ After selecting the workflow:
 6. Otherwise, call contradiction_resolver_agent exactly once with all confirmed
    candidates.
 7. Return the final structured report.
-
-Classify by the reasoning required to expose the conflict: use "direct" for
-explicitly opposing statements, "transitive" when multiple causal implications
-must be composed to derive the conflicting consequence, and "conditional" when
-the conflict hinges on a state predicate or temporal window. A triggering event
-does not make a multi-step implication chain conditional; classify that chain as
-transitive. Use "guideline_violation" only in the one-document compliance mode.
 """
 
 
