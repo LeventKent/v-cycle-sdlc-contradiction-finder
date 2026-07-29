@@ -9,13 +9,15 @@ from pathlib import Path
 
 from contradiction_finder import (
     ConfigurationError,
-    ContradictionHandlerAgent,
     DocumentInputError,
+    analyze_documents,
+    create_contradiction_handler,
     load_documents,
     render_markdown,
     write_json_report,
     write_markdown_report,
 )
+from strands import Agent
 
 REPORT_PATH = Path(__file__).resolve().parent / "agent-outputs" / "contradiction-report.md"
 JSON_REPORT_PATH = (
@@ -25,17 +27,13 @@ JSON_REPORT_PATH = (
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Find contradictions between two Markdown documents."
+        description="Find contradictions across two or more Markdown documents."
     )
     parser.add_argument(
-        "architecture",
+        "documents",
+        nargs="+",
         type=Path,
-        help="System architecture Markdown document",
-    )
-    parser.add_argument(
-        "requirements",
-        type=Path,
-        help="System requirements Markdown document",
+        help="Markdown documents to analyze",
     )
     parser.add_argument(
         "--json",
@@ -51,7 +49,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def interactive_session(handler: ContradictionHandlerAgent) -> None:
+def interactive_session(handler: Agent) -> None:
     print("\nAsk follow-up questions about the report. Type 'exit' to finish.")
     while True:
         try:
@@ -63,15 +61,15 @@ def interactive_session(handler: ContradictionHandlerAgent) -> None:
             return
         if not question:
             continue
-        print(handler.ask(question))
+        print(handler(question))
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
-        corpus = load_documents(args.architecture, args.requirements)
-        handler = ContradictionHandlerAgent()
-        report = handler.analyze(corpus)
+        corpus = load_documents(*args.documents)
+        handler = create_contradiction_handler()
+        report = analyze_documents(handler, corpus)
     except (ConfigurationError, DocumentInputError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2

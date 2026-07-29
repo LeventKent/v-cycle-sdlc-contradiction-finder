@@ -89,7 +89,7 @@ class ContradictionReport(BaseModel):
 
 @dataclass(frozen=True)
 class DocumentCorpus:
-    documents: tuple[str, str]
+    documents: tuple[str, ...]
     annotated_text: str
 
 
@@ -100,9 +100,13 @@ class ModelSettings:
     model_id: str
 
 
-def load_documents(first: str | Path, second: str | Path) -> DocumentCorpus:
-    """Load exactly two Markdown files and add source line coordinates."""
-    paths = [Path(first).expanduser().resolve(), Path(second).expanduser().resolve()]
+def load_documents(*documents: str | Path) -> DocumentCorpus:
+    """Load two or more Markdown files and add source line coordinates."""
+    if len(documents) < 2:
+        raise DocumentInputError("At least two Markdown documents are required")
+    paths = [Path(document).expanduser().resolve() for document in documents]
+    if len(set(paths)) != len(paths):
+        raise DocumentInputError("Markdown documents must be unique")
     sections: list[str] = []
     names: list[str] = []
 
@@ -121,7 +125,7 @@ def load_documents(first: str | Path, second: str | Path) -> DocumentCorpus:
         sections.append(f"--- DOCUMENT: {path.name} ---\n" + "\n".join(annotated))
 
     return DocumentCorpus(
-        documents=(names[0], names[1]),
+        documents=tuple(names),
         annotated_text="\n\n".join(sections),
     )
 
@@ -175,16 +179,21 @@ wording or design direction, and the main tradeoff.
 
 HANDLER_PROMPT = """\
 You are ContradictionHandlerAgent for V-cycle documentation. Find logical
-contradictions between the two supplied documents and suggest resolutions.
+contradictions across the two or more supplied documents and suggest resolutions.
 
 Use this exact workflow:
-1. Detect and deduplicate every candidate contradiction.
-2. Call reviewer_agent exactly once. Send it the complete batch of candidates,
-   including IDs, evidence, and reasoning.
-3. Keep only candidates that the reviewer confirms.
-4. Call contradiction_resolver_agent exactly once. Send it the complete batch
-   of confirmed candidates and their review results.
-5. Return the final structured report.
+1. Analyze the complete corpus. Compare all relevant document pairs and compose
+   implication chains that may span three or more documents.
+2. Detect and deduplicate every candidate contradiction.
+3. If there are no candidates, return a report with no findings and do not call
+   either specialist.
+4. Otherwise, call reviewer_agent exactly once with the complete candidate
+   batch, including IDs, evidence, and reasoning.
+5. Keep only candidates that the reviewer confirms. If none are confirmed,
+   return a report with no findings and do not call contradiction_resolver_agent.
+6. Otherwise, call contradiction_resolver_agent exactly once with the complete
+   batch of confirmed candidates and their review results.
+7. Return the final structured report.
 
 Every finding needs verbatim quotes and exact source line ranges. Include direct,
 transitive, and conditional/temporal contradictions. Do not report missing
@@ -208,14 +217,23 @@ use its exact line coordinates in citations. Use the corresponding guideline to
 interpret document intent and quality rules, but do not report style findings as
 logical contradictions.
 
-After retrieval:
-1. Detect and deduplicate every candidate contradiction across the documents.
-2. Call reviewer_agent exactly once with the complete candidate batch.
-3. Keep only reviewer-confirmed candidates.
-4. Call contradiction_resolver_agent exactly once with all confirmed candidates.
-5. Return the final structured report.
+If any document or guideline lookup fails, stop analysis, do not call either
+specialist, and return a structured report with the requested filenames in
+documents_scanned, no findings, and a summary naming every failed lookup. Never
+analyze an incomplete corpus or invent missing content.
 
-Never invent content when a Gateway lookup fails.
+After retrieval:
+1. Analyze the complete corpus. Compare all relevant document pairs and compose
+   implication chains that may span three or more documents.
+2. Detect and deduplicate every candidate contradiction.
+3. If there are no candidates, return a report with no findings and do not call
+   either specialist.
+4. Otherwise, call reviewer_agent exactly once with the complete candidate batch.
+5. Keep only reviewer-confirmed candidates. If none are confirmed, return a
+   report with no findings and do not call contradiction_resolver_agent.
+6. Otherwise, call contradiction_resolver_agent exactly once with all confirmed
+   candidates.
+7. Return the final structured report.
 
 Classify by the reasoning required to expose the conflict: use "direct" for
 explicitly opposing statements, "transitive" when multiple causal implications
@@ -226,77 +244,72 @@ transitive.
 """
 
 
-class ContradictionHandlerAgent:
-    """Stateful main agent with two stateless specialist agents as tools."""
+def create_contradiction_handler(
+    settings: ModelSettings | None = None,
+    content_tools: list[Any] | None = None,
+) -> Agent:
+    """Create the stateful handler with two stateless agents as tools."""
+    settings = settings or load_model_settings()
+    content_tools = content_tools or []
+    reviewer_agent = Agent(
+        name="reviewer_agent",
+        description="Reviews a complete batch of candidate contradictions.",
+        model=create_model(settings, stateful=False),
+        system_prompt=REVIEWER_PROMPT,
+        structured_output_model=ReviewerResponse,
+        callback_handler=None,
+    )
+    resolver_agent = Agent(
+        name="contradiction_resolver_agent",
+        description="Suggests resolutions for a batch of confirmed contradictions.",
+        model=create_model(settings, stateful=False),
+        system_prompt=RESOLVER_PROMPT,
+        structured_output_model=ResolverResponse,
+        callback_handler=None,
+    )
+    return Agent(
+        name="contradiction_handler_agent",
+        model=create_model(settings, stateful=True),
+        system_prompt=GATEWAY_HANDLER_PROMPT if content_tools else HANDLER_PROMPT,
+        tools=[
+            reviewer_agent.as_tool(preserve_context=False),
+            resolver_agent.as_tool(preserve_context=False),
+            *content_tools,
+        ],
+        tool_executor=SequentialToolExecutor(),
+        callback_handler=None,
+    )
 
-    def __init__(
-        self,
-        settings: ModelSettings | None = None,
-        content_tools: list[Any] | None = None,
-    ) -> None:
-        settings = settings or load_model_settings()
-        self.content_tools = content_tools or []
 
-        self.reviewer_agent = Agent(
-            name="reviewer_agent",
-            description="Reviews a complete batch of candidate contradictions.",
-            model=create_model(settings, stateful=False),
-            system_prompt=REVIEWER_PROMPT,
-            structured_output_model=ReviewerResponse,
-            callback_handler=None,
-        )
-        self.resolver_agent = Agent(
-            name="contradiction_resolver_agent",
-            description="Suggests resolutions for a batch of confirmed contradictions.",
-            model=create_model(settings, stateful=False),
-            system_prompt=RESOLVER_PROMPT,
-            structured_output_model=ResolverResponse,
-            callback_handler=None,
-        )
-        self.agent = Agent(
-            name="contradiction_handler_agent",
-            model=create_model(settings, stateful=True),
-            system_prompt=GATEWAY_HANDLER_PROMPT if self.content_tools else HANDLER_PROMPT,
-            tools=[
-                self.reviewer_agent.as_tool(preserve_context=False),
-                self.resolver_agent.as_tool(preserve_context=False),
-            ]
-            + self.content_tools,
-            tool_executor=SequentialToolExecutor(),
-            callback_handler=None,
-        )
-        self.latest_report: ContradictionReport | None = None
+def require_report(result: Any) -> ContradictionReport:
+    report = result.structured_output
+    if not isinstance(report, ContradictionReport):
+        raise RuntimeError("Contradiction handler returned no structured report")
+    return report
 
-    def analyze(self, corpus: DocumentCorpus) -> ContradictionReport:
-        result = self.agent(
-            "Analyze these two documents. Bracketed prefixes are source "
-            "coordinates, not document text.\n\n" + corpus.annotated_text,
-            structured_output_model=ContradictionReport,
-        )
-        if result.structured_output is None:
-            raise RuntimeError("ContradictionHandlerAgent returned no structured report")
-        # Strands validates against the requested model but types this as BaseModel.
-        self.latest_report = result.structured_output  # type: ignore[assignment]
-        return self.latest_report # type: ignore
 
-    def analyze_document_names(self, document_names: list[str]) -> ContradictionReport:
-        if not self.content_tools:
-            raise RuntimeError("Gateway content tools are required for name-based analysis")
-        result = self.agent(
-            "Retrieve and analyze these documents and their corresponding guidelines: "
-            + json.dumps(document_names),
-            structured_output_model=ContradictionReport,
-        )
-        if result.structured_output is None:
-            raise RuntimeError("ContradictionHandlerAgent returned no structured report")
-        # Strands validates against the requested model but types this as BaseModel.
-        self.latest_report = result.structured_output  # type: ignore[assignment]
-        return self.latest_report # type: ignore
+def analyze_documents(
+    handler: Agent,
+    corpus: DocumentCorpus,
+) -> ContradictionReport:
+    result = handler(
+        "Analyze these documents as one corpus. Bracketed prefixes are source "
+        "coordinates, not document text.\n\n" + corpus.annotated_text,
+        structured_output_model=ContradictionReport,
+    )
+    return require_report(result)
 
-    def ask(self, question: str) -> str:
-        if self.latest_report is None:
-            raise RuntimeError("Run analyze() before asking follow-up questions")
-        return str(self.agent(question))
+
+def analyze_document_names(
+    handler: Agent,
+    document_names: list[str],
+) -> ContradictionReport:
+    result = handler(
+        "Retrieve and analyze these documents and their corresponding guidelines: "
+        + json.dumps(document_names),
+        structured_output_model=ContradictionReport,
+    )
+    return require_report(result)
 
 
 def render_markdown(report: ContradictionReport) -> str:

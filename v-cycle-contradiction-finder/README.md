@@ -1,9 +1,9 @@
 # Multi-Agent Contradiction Finder
 
-This local Strands sample compares two V-cycle Markdown documents:
+This local Strands sample compares two or more V-cycle Markdown documents:
 
-- `ContradictionHandlerAgent` finds candidate contradictions and keeps context
-  for follow-up questions.
+- The stateful `contradiction_handler_agent` finds candidate contradictions and
+  keeps context for follow-up questions.
 - `ReviewerAgent` reviews all candidates in one stateless tool call.
 - `ContradictionResolverAgent` suggests one to three corrections for every
   confirmed contradiction in one stateless tool call.

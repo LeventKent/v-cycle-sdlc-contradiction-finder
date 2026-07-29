@@ -67,22 +67,29 @@ def make_finding() -> ContradictionFinding:
 
 
 class DocumentLoadingTests(unittest.TestCase):
-    def test_loads_exactly_two_files_with_line_coordinates(self) -> None:
+    def test_loads_multiple_files_with_line_coordinates(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
             architecture = root / "architecture.md"
             requirements = root / "requirements.md"
+            hardware = root / "hardware.md"
             architecture.write_text("Architecture\nRule\n", encoding="utf-8")
             requirements.write_text("Requirements\nConflict\n", encoding="utf-8")
+            hardware.write_text("Hardware\nConstraint\n", encoding="utf-8")
 
-            corpus = load_documents(architecture, requirements)
+            corpus = load_documents(architecture, requirements, hardware)
 
             self.assertEqual(
                 corpus.documents,
-                ("architecture.md", "requirements.md"),
+                ("architecture.md", "requirements.md", "hardware.md"),
             )
             self.assertIn("[architecture.md:2] Rule", corpus.annotated_text)
             self.assertIn("[requirements.md:2] Conflict", corpus.annotated_text)
+            self.assertIn("[hardware.md:2] Constraint", corpus.annotated_text)
+
+    def test_rejects_fewer_than_two_files(self) -> None:
+        with self.assertRaisesRegex(DocumentInputError, "At least two"):
+            load_documents("architecture.md")
 
     def test_rejects_missing_file(self) -> None:
         with self.assertRaisesRegex(DocumentInputError, "does not exist"):

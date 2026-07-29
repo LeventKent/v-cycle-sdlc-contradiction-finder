@@ -9,7 +9,10 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from mcp.client.streamable_http import streamablehttp_client
 from strands.tools.mcp.mcp_client import MCPClient
 
-from contradiction_finder import ContradictionHandlerAgent
+from contradiction_finder import (
+    analyze_document_names,
+    create_contradiction_handler,
+)
 from gateway_auth import get_gateway_token
 
 app = BedrockAgentCoreApp()
@@ -55,9 +58,8 @@ def invoke(payload: dict) -> dict:
             raise RuntimeError(
                 f"Expected two Gateway content tools, found {len(content_tools)}"
             )
-        report = ContradictionHandlerAgent(
-            content_tools=content_tools
-        ).analyze_document_names(document_names)
+        handler = create_contradiction_handler(content_tools=content_tools)
+        report = analyze_document_names(handler, document_names)
         return report.model_dump(mode="json")
 
 
