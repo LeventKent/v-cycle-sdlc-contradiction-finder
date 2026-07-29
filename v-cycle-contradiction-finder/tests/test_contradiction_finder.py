@@ -23,6 +23,7 @@ from contradiction_finder import (  # noqa: E402
     load_model_settings,
     render_markdown,
     write_json_report,
+    write_markdown_report,
 )
 from pydantic import ValidationError  # noqa: E402
 
@@ -110,6 +111,20 @@ class SchemaAndRenderingTests(unittest.TestCase):
             )
             data = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(data["findings"][0]["identifier"], "C1")
+
+    def test_writes_markdown_and_creates_output_directory(self) -> None:
+        report = ContradictionReport(
+            documents_scanned=["architecture.md", "requirements.md"],
+            summary="One contradiction confirmed.",
+            findings=[make_finding()],
+        )
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            path = write_markdown_report(
+                report,
+                Path(temporary_directory) / "agent-outputs" / "report.md",
+            )
+            self.assertTrue(path.is_file())
+            self.assertIn("# Contradiction Report", path.read_text(encoding="utf-8"))
 
 
 class ConfigurationTests(unittest.TestCase):

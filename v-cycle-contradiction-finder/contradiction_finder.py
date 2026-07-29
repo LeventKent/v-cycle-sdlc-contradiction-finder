@@ -357,8 +357,19 @@ def render_markdown(report: ContradictionReport) -> str:
 
 def write_json_report(report: ContradictionReport, output_path: str | Path) -> Path:
     path = Path(output_path).expanduser()
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(report.model_dump(mode="json"), indent=2) + "\n",
         encoding="utf-8",
     )
+    return path
+
+
+def write_markdown_report(
+    report: ContradictionReport,
+    output_path: str | Path,
+) -> Path:
+    path = Path(output_path).expanduser()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(render_markdown(report), encoding="utf-8")
     return path

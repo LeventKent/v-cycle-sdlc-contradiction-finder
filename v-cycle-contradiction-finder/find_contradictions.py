@@ -14,6 +14,12 @@ from contradiction_finder import (
     load_documents,
     render_markdown,
     write_json_report,
+    write_markdown_report,
+)
+
+REPORT_PATH = Path(__file__).resolve().parent / "agent-outputs" / "contradiction-report.md"
+JSON_REPORT_PATH = (
+    Path(__file__).resolve().parent / "agent-outputs" / "contradiction-report.json"
 )
 
 
@@ -73,10 +79,14 @@ def main(argv: list[str] | None = None) -> int:
         print("\nAnalysis cancelled.", file=sys.stderr)
         return 130
 
+    markdown_path = write_markdown_report(report, REPORT_PATH)
+    json_path = write_json_report(report, JSON_REPORT_PATH)
     print(render_markdown(report), end="")
+    print(f"Markdown report written to {markdown_path}", file=sys.stderr)
+    print(f"JSON report written to {json_path}", file=sys.stderr)
     if args.json:
-        json_path = write_json_report(report, args.json)
-        print(f"\nJSON report written to {json_path}")
+        additional_json_path = write_json_report(report, args.json)
+        print(f"\nJSON report written to {additional_json_path}")
 
     if not args.no_interactive:
         interactive_session(handler)

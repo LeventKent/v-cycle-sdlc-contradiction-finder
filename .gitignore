@@ -2,5 +2,6 @@
 .bedrock_agentcore/
 v-cycle-contradiction-finder/.agentcore-deployment.json
 v-cycle-contradiction-finder/.bedrock_agentcore/
+v-cycle-contradiction-finder/agent-outputs/
 **/__pycache__/
 *.pyc

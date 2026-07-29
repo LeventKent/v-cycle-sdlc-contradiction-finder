@@ -26,6 +26,14 @@ The Markdown report is followed by a prompt for stateful questions. Add
 `--no-interactive` for a one-shot run or `--json report.json` to also save the
 Pydantic-validated report as JSON.
 
+Every successful local or AgentCore CLI call also writes the latest Markdown
+and JSON reports to:
+
+```text
+v-cycle-contradiction-finder/agent-outputs/contradiction-report.md
+v-cycle-contradiction-finder/agent-outputs/contradiction-report.json
+```
+
 The program reads `AWS_REGION`, `OPENAI_BASE_URL`, and `MODEL_ID` from `.env`
 and authenticates with `aws_bedrock_token_generator.provide_token`.
 
