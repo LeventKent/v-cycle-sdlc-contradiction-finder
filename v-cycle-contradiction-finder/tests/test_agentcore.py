@@ -26,9 +26,17 @@ def load_lambda_module():
 
 
 class RuntimeInputTests(unittest.TestCase):
+    def test_accepts_single_markdown_name_for_guideline_check(self) -> None:
+        names = ["02-System-Requirements.md"]
+        self.assertEqual(validate_document_names({"document_names": names}), names)
+
     def test_accepts_plain_unique_markdown_names(self) -> None:
         names = ["01-System-Architecture.md", "02-System-Requirements.md"]
         self.assertEqual(validate_document_names({"document_names": names}), names)
+
+    def test_rejects_empty_document_list(self) -> None:
+        with self.assertRaisesRegex(ValueError, "between 1 and 9"):
+            validate_document_names({"document_names": []})
 
     def test_rejects_path_traversal_and_duplicates(self) -> None:
         with self.assertRaisesRegex(ValueError, "plain Markdown"):

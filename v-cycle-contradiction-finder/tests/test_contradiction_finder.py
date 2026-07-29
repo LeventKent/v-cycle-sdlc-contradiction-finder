@@ -6,7 +6,9 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
+from unittest.mock import Mock
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_DIR))
@@ -19,6 +21,7 @@ from contradiction_finder import (  # noqa: E402
     Evidence,
     ResolutionAlternative,
     ReviewAssessment,
+    analyze_document_names,
     load_documents,
     load_model_settings,
     render_markdown,
@@ -131,7 +134,33 @@ class SchemaAndRenderingTests(unittest.TestCase):
                 Path(temporary_directory) / "agent-outputs" / "report.md",
             )
             self.assertTrue(path.is_file())
-            self.assertIn("# Contradiction Report", path.read_text(encoding="utf-8"))
+            self.assertIn(
+                "# Document Analysis Report",
+                path.read_text(encoding="utf-8"),
+            )
+
+    def test_accepts_reviewer_confirmed_guideline_violation(self) -> None:
+        data = make_finding().model_dump()
+        data["classification"] = "guideline_violation"
+        finding = ContradictionFinding.model_validate(data)
+        self.assertEqual(finding.classification, "guideline_violation")
+
+    def test_single_document_requests_guideline_compliance_check(self) -> None:
+        report = ContradictionReport(
+            documents_scanned=["02-System-Requirements.md"],
+            summary="No findings.",
+            findings=[],
+        )
+        handler = Mock(
+            return_value=SimpleNamespace(structured_output=report),
+        )
+
+        self.assertIs(
+            analyze_document_names(handler, ["02-System-Requirements.md"]),
+            report,
+        )
+        prompt = handler.call_args.args[0]
+        self.assertIn("document-to-guideline compliance check", prompt)
 
 
 class ConfigurationTests(unittest.TestCase):

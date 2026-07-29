@@ -11,20 +11,22 @@ and suggest corrections.
 
 The sample uses the Strands agents-as-tools pattern:
 
-1. The stateful `contradiction_handler_agent` analyzes two or more documents as
-   one corpus, deduplicates candidate contradictions, and composes reasoning
-   chains that may span several artifacts.
-2. The stateless `reviewer_agent` receives the complete candidate contradictions in one
-   tool call and rejects false positives.
+1. The stateful `contradiction_handler_agent` checks one document against its
+   guideline or analyzes two or more documents as one corpus. It deduplicates
+   findings and composes reasoning chains that may span several artifacts.
+2. The stateless `reviewer_agent` receives the complete candidate batch in one
+   tool call and rejects false positives or subjective guideline complaints.
 3. The stateless `contradiction_resolver_agent` receives only confirmed
-   contradictions and proposes one to three corrections for each.
+   findings and proposes one to three corrections for each.
 4. Pydantic models validate evidence, reviewer verdicts, resolutions, and the
    final report before it is returned.
 
-The local CLI supplies document content directly. The AgentCore variant accepts
-document names and retrieves each document and its corresponding guideline
-through AgentCore Gateway. AgentCore Runtime hosts the Strands workflow; the
-Gateway Lambda only serves Markdown content with stable source line numbers.
+The local CLI supplies two or more document contents directly for contradiction
+analysis. The AgentCore variant accepts one to nine document names and retrieves
+each document and its corresponding guideline through AgentCore Gateway. One
+name selects guideline-compliance mode; two or more select cross-document
+contradiction mode. AgentCore Runtime hosts the Strands workflow; the Gateway
+Lambda only serves Markdown content with stable source line numbers.
 
 ## Introduced contradictions
 
@@ -111,14 +113,14 @@ role to invoke only the configured Lambda target.
 
 For each request, the Runtime:
 
-1. Validates that the payload contains 2-9 unique plain Markdown filenames.
+1. Validates that the payload contains 1-9 unique plain Markdown filenames.
 2. Opens an authenticated MCP session with Gateway.
 3. Retrieves every requested document and its matching guideline.
 4. Stops with a zero-finding failure report if any retrieval fails.
-5. Runs whole-corpus contradiction detection, including implication chains
-   spanning three or more documents.
+5. Checks one document against its guideline, or runs whole-corpus contradiction
+   detection for two or more documents.
 6. Sends a nonempty candidate batch to the reviewer in one agent-tool call.
-7. Sends only confirmed contradictions to the resolver in one agent-tool call.
+7. Sends only confirmed findings to the resolver in one agent-tool call.
 8. Returns the Pydantic-validated report to the CLI, which writes the latest
    Markdown and JSON artifacts under `agent-outputs`.
 
@@ -149,8 +151,25 @@ client credentials and generated resource IDs are stored in the ignored
 
 ## Call the endpoint
 
-The Runtime accepts between two and nine unique top-level Markdown filenames.
+The Runtime accepts between one and nine unique top-level Markdown filenames.
 The CLI below invokes the deployed AgentCore endpoint.
+
+With one document, check it against its corresponding guideline:
+
+```bash
+.venv/bin/python v-cycle-contradiction-finder/invoke_agentcore.py \
+  02-System-Requirements.md
+```
+
+Equivalent payload:
+
+```json
+{
+  "document_names": [
+    "02-System-Requirements.md"
+  ]
+}
+```
 
 With two documents:
 

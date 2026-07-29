@@ -67,7 +67,13 @@ class ResolverResponse(BaseModel):
 class ContradictionFinding(BaseModel):
     identifier: str
     title: str
-    classification: Literal["direct", "transitive", "conditional", "other"]
+    classification: Literal[
+        "direct",
+        "transitive",
+        "conditional",
+        "guideline_violation",
+        "other",
+    ]
     explanation: str
     evidence: list[Evidence] = Field(min_length=2)
     reasoning_steps: list[str] = Field(min_length=1)
@@ -162,18 +168,22 @@ def create_model(
 
 REVIEWER_PROMPT = """\
 You are ReviewerAgent, an independent systems-document reviewer. You receive a
-batch of candidate contradictions. Review every candidate and return one
+batch of candidate findings. Review every candidate and return one
 verdict per candidate_id. Confirm only statements that apply to the same scope
 and cannot both be satisfied. Check direct, transitive, and temporal reasoning.
-Reject omissions, stylistic issues, and mere differences in detail.
+For a guideline_violation candidate, confirm only when the cited guideline
+states an explicit rule and the document demonstrably violates it. Reject
+subjective preferences, omissions not required by the guideline, stylistic
+issues outside guideline-check mode, and mere differences in detail.
 """
 
 
 RESOLVER_PROMPT = """\
 You are ContradictionResolverAgent. You receive a batch of contradictions
-confirmed by ReviewerAgent. For every candidate_id, return one to three concrete
-alternatives that make the documents consistent. State what changes, suggested
-wording or design direction, and the main tradeoff.
+or guideline violations confirmed by ReviewerAgent. For every candidate_id,
+return one to three concrete alternatives that make the documents consistent
+or compliant. State what changes, suggested wording or design direction, and
+the main tradeoff.
 """
 
 
@@ -212,20 +222,31 @@ You are ContradictionHandlerAgent for V-cycle documentation. The user supplies
 document filenames, not document content.
 
 Before analysis, call the Gateway get_document and get_guideline tools once for
-every requested filename. Use get_document content as the evidence baseline and
-use its exact line coordinates in citations. Use the corresponding guideline to
-interpret document intent and quality rules, but do not report style findings as
-logical contradictions.
+every requested filename. Use exact line coordinates from both retrieved
+documents and guidelines in citations.
 
 If any document or guideline lookup fails, stop analysis, do not call either
 specialist, and return a structured report with the requested filenames in
 documents_scanned, no findings, and a summary naming every failed lookup. Never
 analyze an incomplete corpus or invent missing content.
 
-After retrieval:
+Choose the workflow from the number of requested documents:
+
+- For exactly one document, perform a document-to-guideline compliance check.
+  Compare the document with every explicit rule in its corresponding guideline.
+  Report each demonstrable violation as classification "guideline_violation".
+  Every candidate must cite both the violating document statement or section
+  and the guideline rule. Do not report subjective suggestions or rules that the
+  document already satisfies.
+- For two or more documents, find logical contradictions across the complete
+  document corpus. Use guidelines to interpret document intent and quality
+  rules, but do not report writing-style findings as logical contradictions.
+
+After selecting the workflow:
 1. Analyze the complete corpus. Compare all relevant document pairs and compose
-   implication chains that may span three or more documents.
-2. Detect and deduplicate every candidate contradiction.
+   implication chains that may span three or more documents when in
+   contradiction mode.
+2. Detect and deduplicate every candidate finding.
 3. If there are no candidates, return a report with no findings and do not call
    either specialist.
 4. Otherwise, call reviewer_agent exactly once with the complete candidate batch.
@@ -240,7 +261,7 @@ explicitly opposing statements, "transitive" when multiple causal implications
 must be composed to derive the conflicting consequence, and "conditional" when
 the conflict hinges on a state predicate or temporal window. A triggering event
 does not make a multi-step implication chain conditional; classify that chain as
-transitive.
+transitive. Use "guideline_violation" only in the one-document compliance mode.
 """
 
 
@@ -253,7 +274,7 @@ def create_contradiction_handler(
     content_tools = content_tools or []
     reviewer_agent = Agent(
         name="reviewer_agent",
-        description="Reviews a complete batch of candidate contradictions.",
+        description="Reviews a complete batch of candidate findings.",
         model=create_model(settings, stateful=False),
         system_prompt=REVIEWER_PROMPT,
         structured_output_model=ReviewerResponse,
@@ -261,7 +282,7 @@ def create_contradiction_handler(
     )
     resolver_agent = Agent(
         name="contradiction_resolver_agent",
-        description="Suggests resolutions for a batch of confirmed contradictions.",
+        description="Suggests resolutions for a batch of confirmed findings.",
         model=create_model(settings, stateful=False),
         system_prompt=RESOLVER_PROMPT,
         structured_output_model=ResolverResponse,
@@ -304,9 +325,18 @@ def analyze_document_names(
     handler: Agent,
     document_names: list[str],
 ) -> ContradictionReport:
+    if len(document_names) == 1:
+        instruction = (
+            "Retrieve this document and its corresponding guideline, then perform "
+            "a document-to-guideline compliance check: "
+        )
+    else:
+        instruction = (
+            "Retrieve and analyze these documents and their corresponding "
+            "guidelines for cross-document contradictions: "
+        )
     result = handler(
-        "Retrieve and analyze these documents and their corresponding guidelines: "
-        + json.dumps(document_names),
+        instruction + json.dumps(document_names),
         structured_output_model=ContradictionReport,
     )
     return require_report(result)
@@ -314,11 +344,11 @@ def analyze_document_names(
 
 def render_markdown(report: ContradictionReport) -> str:
     lines = [
-        "# Contradiction Report",
+        "# Document Analysis Report",
         "",
         report.summary,
         "",
-        f"Confirmed contradictions: {len(report.findings)}",
+        f"Confirmed findings: {len(report.findings)}",
     ]
     for finding in report.findings:
         lines.extend(

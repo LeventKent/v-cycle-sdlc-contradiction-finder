@@ -1,13 +1,14 @@
-# Introduced Cross-Document Contradictions
+# Introduced Contradictions and Guideline Violation
 
 ## Purpose
 
-This file is the answer key for three contradictions deliberately inserted
-into the bundled V-Cycle documents. It is not part of the document set supplied
-to the reviewer.
+This file is the answer key for three contradictions and one guideline
+violation deliberately inserted into the bundled V-Cycle documentation. It is
+not part of the document set supplied to the reviewer.
 
 The contradictions exercise direct comparison, transitive reasoning, and
-conditional temporal reasoning. Remove or revise the corresponding source
+conditional temporal reasoning. The guideline case exercises the
+single-document compliance workflow. Remove or revise the corresponding source
 statements before treating the bundled documents as a production baseline.
 
 ## C1 - Simple Direct Contradiction
@@ -88,9 +89,35 @@ the compound safety precondition.
 
 Expected classification: Rule 2 `contradiction`.
 
+## G1 - WiFi Command Routing Guideline Violation
+
+Difficulty: Simple.
+
+Guideline statement:
+
+> WiFi requirements shall preserve existing ROS command and telemetry
+> contracts. Any WiFi command requirement shall route through high-level
+> command surfaces unless explicitly scoped as diagnostics or firmware
+> telemetry.
+
+Violating requirement:
+
+> FR-8.5 A WiFi manual-trim command shall invoke
+> `ll/_service/mow_enabled` directly without passing through `mower_logic`.
+
+Expected reasoning:
+
+FR-8.5 defines a normal WiFi manual-trim command, requires it to bypass the
+high-level `mower_logic` command surface, and does not scope it as diagnostics
+or firmware telemetry. It therefore violates the explicit WiFi integration
+rule in `02-System-Requirements-Guideline.md`.
+
+Expected classification: `guideline_violation`.
+
 ## Expected Detection Summary
 
-The reviewer should report three distinct Rule 2 contradictions:
+When two or more documents are checked for contradictions, the reviewer should
+report three distinct Rule 2 contradictions:
 
 - Direct low-level blade enable versus mandatory `mower_logic` authorization.
 - Blade enabled during home/docking travel versus blade disabled before
@@ -98,5 +125,7 @@ The reviewer should report three distinct Rule 2 contradictions:
 - Queued start replay before refreshed safety telemetry versus rejection and
   no replay while the reconnect snapshot is stale.
 
-Additional Rule 1 guideline findings may be reported because the injected
-requirements intentionally name implementation interfaces and mechanisms.
+When only `02-System-Requirements.md` is checked against its corresponding
+guideline, the reviewer should report G1 as a `guideline_violation`. Additional
+guideline findings may be reported because the requirements intentionally name
+implementation interfaces and mechanisms.

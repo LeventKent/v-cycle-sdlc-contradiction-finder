@@ -42,7 +42,7 @@ def main() -> int:
     parser.add_argument(
         "document_names",
         nargs="+",
-        help="Two or more exact Markdown filenames",
+        help="One to nine exact Markdown filenames",
     )
     args = parser.parse_args()
     result = invoke_bedrock_agentcore(

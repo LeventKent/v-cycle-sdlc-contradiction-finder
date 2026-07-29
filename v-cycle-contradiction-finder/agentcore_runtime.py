@@ -20,8 +20,8 @@ app = BedrockAgentCoreApp()
 
 def validate_document_names(payload: dict) -> list[str]:
     names = payload.get("document_names")
-    if not isinstance(names, list) or not 2 <= len(names) <= 9:
-        raise ValueError("document_names must contain between 2 and 9 filenames")
+    if not isinstance(names, list) or not 1 <= len(names) <= 9:
+        raise ValueError("document_names must contain between 1 and 9 filenames")
     if any(
         not isinstance(name, str)
         or PurePath(name).name != name
