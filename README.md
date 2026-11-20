@@ -66,11 +66,14 @@ Architecture assets for the AgentCore deployment:
 
 ## Quick start
 
-Use the supplied virtual environment from the repository root:
+From the repository root, create the virtual environment and the local `.env`
+(not tracked; see [`.env.example`](./.env.example)):
 
 ```bash
+python3 -m venv .venv
 .venv/bin/pip install \
   -r v-cycle-contradiction-finder/requirements.txt
+cp .env.example .env
 ```
 
 Run a local three-document contradiction analysis:

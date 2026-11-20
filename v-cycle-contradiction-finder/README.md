@@ -114,7 +114,17 @@ v-cycle-contradiction-finder/agent-outputs/contradiction-report.json
 ```
 
 The program reads `AWS_REGION`, `OPENAI_BASE_URL`, and `MODEL_ID` from `.env`
-and authenticates with `aws_bedrock_token_generator.provide_token`.
+in the repository root and authenticates with
+`aws_bedrock_token_generator.provide_token`. `.env` is not tracked; create it
+from the committed template:
+
+```bash
+cp .env.example .env
+```
+
+Variables already exported in the shell take precedence over `.env`. Keep
+`AWS_REGION` consistent with the region in `OPENAI_BASE_URL`; a mismatch fails
+with `401 - Credential should be scoped to a valid region`.
 
 ## AgentCore deployment
 
