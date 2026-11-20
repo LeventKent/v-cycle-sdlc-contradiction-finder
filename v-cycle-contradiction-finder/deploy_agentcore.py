@@ -319,6 +319,20 @@ def deploy_runtime(
     )
 
 
+def wait_for_runtime(control: Any, runtime_id: str) -> dict[str, Any]:
+    for _ in range(150):
+        runtime = control.get_agent_runtime(agentRuntimeId=runtime_id)
+        status = runtime["status"]
+        if status == "READY":
+            return runtime
+        if status in {"CREATE_FAILED", "UPDATE_FAILED", "DELETING"}:
+            raise RuntimeError(
+                f"Runtime entered {status}: {runtime.get('failureReason', '')}"
+            )
+        time.sleep(2)
+    raise TimeoutError("Timed out waiting for the Runtime to become READY")
+
+
 def ensure_runtime_model_permission(iam: Any, runtime_role_arn: str) -> None:
     role_name = runtime_role_arn.rsplit("/", 1)[-1]
     policy = {
@@ -377,9 +391,7 @@ def main() -> int:
     save_state(state)
 
     launch = deploy_runtime(gateway, client_info)
-    runtime = gateway_client.client.get_agent_runtime(
-        agentRuntimeId=launch.agent_id
-    )
+    runtime = wait_for_runtime(gateway_client.client, launch.agent_id)
     ensure_runtime_model_permission(
         session.client("iam"),
         runtime["roleArn"],

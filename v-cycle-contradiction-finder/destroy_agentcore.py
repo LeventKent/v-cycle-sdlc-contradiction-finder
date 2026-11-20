@@ -77,16 +77,23 @@ def delete_runtime(session: boto3.Session, state: dict[str, Any]) -> None:
     runtime_id = state.get("runtime_id")
     runtime_role_arn = state.get("runtime_role_arn")
 
-    if runtime_id and not runtime_role_arn:
+    runtime = None
+    if runtime_id:
         try:
-            runtime_role_arn = control.get_agent_runtime(
-                agentRuntimeId=runtime_id
-            ).get("roleArn")
+            runtime = control.get_agent_runtime(agentRuntimeId=runtime_id)
         except ClientError as error:
             if not is_not_found(error):
                 raise
+        if runtime and not runtime_role_arn:
+            runtime_role_arn = runtime.get("roleArn")
 
-    if CONFIG_PATH.exists():
+    # A repeated delete of a missing runtime fails with AccessDenied, not
+    # NotFound, so skip deletion when an earlier run already removed it.
+    if runtime_id and not runtime:
+        LOGGER.info("Runtime %s is already deleted", runtime_id)
+    elif runtime and runtime.get("status") == "DELETING":
+        LOGGER.info("Runtime %s is already deleting", runtime_id)
+    elif CONFIG_PATH.exists():
         result = destroy_bedrock_agentcore(
             config_path=CONFIG_PATH,
             agent_name=RUNTIME_NAME,
@@ -105,6 +112,7 @@ def delete_runtime(session: boto3.Session, state: dict[str, Any]) -> None:
         wait_until_missing(
             lambda: control.get_agent_runtime(agentRuntimeId=runtime_id),
             resource_name=f"Runtime {runtime_id}",
+            attempts=150,
         )
         delete_log_group(
             session,

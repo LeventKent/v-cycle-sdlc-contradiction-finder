@@ -33,7 +33,13 @@ def unwrap_response(response):
     if isinstance(response, str):
         return json.loads(response)
     if isinstance(response, dict) and isinstance(response.get("response"), list):
-        return json.loads("".join(response["response"]))
+        # Streamed chunks can mix str and bytes; join as bytes so multi-byte
+        # characters split across chunk boundaries decode correctly.
+        chunks = (
+            chunk if isinstance(chunk, bytes) else chunk.encode("utf-8")
+            for chunk in response["response"]
+        )
+        return json.loads(b"".join(chunks).decode("utf-8"))
     return response
 
 
